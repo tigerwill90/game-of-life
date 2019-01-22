@@ -22,7 +22,15 @@ class Game {
             for (let y = 0; y < this.matrix.length; y++) {
                 this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
                 for(let x = 0; x < this.matrix[y].length; x++) {
-                    this.matrix[y][x] = Math.random() >= 0.5
+                    this.matrix[y][x] = Math.round(Math.random())
+                }
+            }
+        }
+        const empty = () => {
+            for (let y = 0; y < this.matrix.length; y++) {
+                this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
+                for(let x = 0; x < this.matrix[y].length; x++) {
+                    this.matrix[y][x] = 0
                 }
             }
         }
@@ -31,23 +39,26 @@ class Game {
                 random()
                 break
             case 'blinking':
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = true
+                empty()
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
                 break
             case 'blinking_plus':
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 2] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 2] = true
+                empty()
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 2] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 2] = 1
                 break
             case 'degenerative':
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][(Math.round(this.canvas.width / this.cell) / 2) + 1] = true
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][Math.round(this.canvas.width / this.cell) / 2] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = true
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = true
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) + 1][Math.round(this.canvas.width / this.cell) / 2] = true
+                empty()
+                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
+                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][Math.round(this.canvas.width / this.cell) / 2] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
+                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
+                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) + 1][Math.round(this.canvas.width / this.cell) / 2] = 1
                 break
             default:
                 random()
@@ -60,7 +71,7 @@ class Game {
         setTimeout(() => {
             for (let y = 0; y < this.matrix.length; y++) {
                 for (let x = 0; x < this.matrix[y].length; x++) {
-                    if (this.matrix[y][x]) {
+                    if (this.matrix[y][x] === 1) {
                         this.ctx.fillStyle = '#f44256'
                     } else {
                         this.ctx.fillStyle = '#ffffff'
@@ -78,47 +89,48 @@ class Game {
         for (let y = 0; y < this.matrix.length; y++) {
             for (let x = 0; x < this.matrix[y].length; x++) {
                 const countCellNeighbour = () => {
+                    // TODO inprove this, shortcut > 3
                     let cpt = 0
-                    if (this.matrix[y][x - 1]) {
+                    if (this.matrix[y][x - 1] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y][x + 1]) {
+                    if (this.matrix[y][x + 1] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x - 1]) {
+                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x - 1] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x]) {
+                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x + 1]) {
+                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x + 1] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x - 1]) {
+                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x - 1] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x]) {
+                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x] === 1) {
                         cpt++
                     }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x + 1]) {
+                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x + 1] === 1) {
                         cpt++
                     }
                     return cpt
                 }
                 let countActive = countCellNeighbour()
-                if (this.matrix[y][x] && (countActive < 2 || countActive > 3)) {
+                if (this.matrix[y][x] === 1 && (countActive < 2 || countActive > 3)) {
                     coordToDesactivate.push([y,x])
                 }
-                if (!this.matrix[y][x] && countActive  === 3) {
+                if (this.matrix[y][x] === 0 && countActive  === 3) {
                     coordToActive.push([y,x])
                 }
             }
         }
         coordToDesactivate.forEach(coord => {
-            this.matrix[coord[0]][coord[1]] = false
+            this.matrix[coord[0]][coord[1]] = 0
         })
         coordToActive.forEach(coord => {
-            this.matrix[coord[0]][coord[1]] = true
+            this.matrix[coord[0]][coord[1]] = 1
         })
     }
 
