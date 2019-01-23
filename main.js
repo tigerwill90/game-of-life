@@ -16,120 +16,76 @@ class Game {
         }
     }
 
-    init(method) {
-
-        const random = () => {
+    init(callback) {
+        if (callback === undefined) {
             for (let y = 0; y < this.matrix.length; y++) {
                 this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
                 for(let x = 0; x < this.matrix[y].length; x++) {
                     this.matrix[y][x] = Math.round(Math.random())
                 }
             }
+            return
         }
-        const empty = () => {
-            for (let y = 0; y < this.matrix.length; y++) {
-                this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
-                for(let x = 0; x < this.matrix[y].length; x++) {
-                    this.matrix[y][x] = 0
-                }
+
+        for (let y = 0; y < this.matrix.length; y++) {
+            this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
+            for(let x = 0; x < this.matrix[y].length; x++) {
+                this.matrix[y][x] = 0
             }
         }
-        switch (method) {
-            case 'random':
-                random()
-                break
-            case 'blinking':
-                empty()
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
-                break
-            case 'blinking_plus':
-                empty()
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 2] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) + 2] = 1
-                break
-            case 'degenerative':
-                empty()
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][(Math.round(this.canvas.width / this.cell) / 2) + 1] = 1
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) - 1][Math.round(this.canvas.width / this.cell) / 2] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][(Math.round(this.canvas.width / this.cell) / 2) - 1] = 1
-                this.matrix[Math.round(this.canvas.height / this.cell) / 2][Math.round(this.canvas.width / this.cell) / 2] = 1
-                this.matrix[(Math.round(this.canvas.height / this.cell) / 2) + 1][Math.round(this.canvas.width / this.cell) / 2] = 1
-                break
-            default:
-                random()
-                break
-        }
-    
+        callback(this.matrix)
     }
 
-    draw(callback) {
-        setTimeout(() => {
+    draw(speed, callback) {
+        const interval = setInterval(() => {
             for (let y = 0; y < this.matrix.length; y++) {
                 for (let x = 0; x < this.matrix[y].length; x++) {
                     if (this.matrix[y][x] === 1) {
-                        this.ctx.fillStyle = '#f44256'
+                        this.ctx.fillStyle = '#3f51b5'
                     } else {
-                        this.ctx.fillStyle = '#ffffff'
+                        this.ctx.fillStyle = '#d1d9ff'
                     }
                     this.ctx.fillRect(x * this.cell, y * this.cell, this.cell, this.cell)
                 }
             }
-            callback()
-        }, 0)
+            callback(interval)
+        }, speed)
     }
 
     simulate() {
-        const coordToDesactivate = []
-        const coordToActive = []
+        const cellToDesactive = []
+        const cellToActive = []
         for (let y = 0; y < this.matrix.length; y++) {
             for (let x = 0; x < this.matrix[y].length; x++) {
                 const countCellNeighbour = () => {
-                    // TODO inprove this, shortcut > 3
                     let cpt = 0
-                    if (this.matrix[y][x - 1] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y][x + 1] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x - 1] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y - 1] !== undefined && this.matrix[y - 1][x + 1] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x - 1] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x] === 1) {
-                        cpt++
-                    }
-                    if (this.matrix[y + 1] !== undefined && this.matrix[y + 1][x + 1] === 1) {
-                        cpt++
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            if (i !== 0 || j !== 0) {
+                                if (this.matrix[y + i] !== undefined && this.matrix[y + i][x + j] !== undefined) {
+                                    cpt += this.matrix[y + i][x + j]
+                                    if (cpt > 3) {
+                                        return cpt
+                                    }
+                                }
+                            }
+                        }
                     }
                     return cpt
                 }
                 let countActive = countCellNeighbour()
                 if (this.matrix[y][x] === 1 && (countActive < 2 || countActive > 3)) {
-                    coordToDesactivate.push([y,x])
+                    cellToDesactive.push([y,x])
                 }
                 if (this.matrix[y][x] === 0 && countActive  === 3) {
-                    coordToActive.push([y,x])
+                    cellToActive.push([y,x])
                 }
             }
         }
-        coordToDesactivate.forEach(coord => {
+        cellToDesactive.forEach(coord => {
             this.matrix[coord[0]][coord[1]] = 0
         })
-        coordToActive.forEach(coord => {
+        cellToActive.forEach(coord => {
             this.matrix[coord[0]][coord[1]] = 1
         })
     }
@@ -141,20 +97,29 @@ class Game {
 
 window.addEventListener('load', () => {
     canvas = document.getElementById('life-game')
-    canvas.height = 600
-    canvas.width = 1000
+    canvas.height = window.innerHeight / 1.2
+    canvas.width = window.innerWidth / 1.2
+    //canvas.height = 100
+    //canvas.width = 100
+    canvas.style.top = `calc(50% - ${canvas.height/2}px)`
+    canvas.style.left = `calc(50% - ${canvas.width/2}px)`
     if (canvas.getContext) {
-        console.log('it\'s work')
         const ctx = canvas.getContext('2d')
         const game = new Game(canvas, ctx, 5)
-        game.init('random')
-        setInterval(() => {
-            game.draw(() => {
-                game.simulate()
-            })
-        }, 100)
+        game.init(matrix => {
+            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2) + 1] = 1
+            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2)] = 1
+            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2) - 1] = 1
+            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2)] = 1
+            matrix[Math.round((canvas.height / 5) / 2) + 1][Math.round((canvas.width / 5) / 2)] = 1
+        })
+        let cpt = 0
+        game.draw(100, interval => {
+            document.getElementById('generation').innerHTML = 'Generation : ' + cpt++
+            game.simulate()
+        })
     } else {
-        throw new Error('Canevas unsupported on this browser version')
+        throw new Error('Canevas unsupported on this browser')
     }
 })
 
