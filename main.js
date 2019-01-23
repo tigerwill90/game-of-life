@@ -3,32 +3,34 @@
  * 1) Survie : si une case pleine est entourée par 2 ou 3 voisines, elle survie au coup suivant
  * 2) Naissance : si une case vide est entouée par exactement 3 voisines, elle devient vivante au tour suivant
  */
-let canvas = null
-
-class Game {
-    constructor(canvas, ctx, cell) {
+class LifeGame {
+    constructor(canvas, cellSize) {
         this.canvas = canvas
-        this.ctx = ctx
-        this.cell = cell
-        this.matrix = new Array(Math.round(this.canvas.height / this.cell))
+        this.ctx = canvas.getContext('2d')
+        this.cellSize = cellSize
+        this.matrix = new Array(Math.round(this.canvas.height / this.cellSize))
+        this.totalGen = 0
         for (let y = 0; y < this.matrix.length; y++) {
-            this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
+            this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
         }
     }
 
+    /**
+     * Initialize matrix with cell pattern
+     * @param {Function} callback 
+     */
     init(callback) {
         if (callback === undefined) {
             for (let y = 0; y < this.matrix.length; y++) {
-                this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
+                this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
                 for(let x = 0; x < this.matrix[y].length; x++) {
                     this.matrix[y][x] = Math.round(Math.random())
                 }
             }
             return
         }
-
         for (let y = 0; y < this.matrix.length; y++) {
-            this.matrix[y] = new Array(Math.round(this.canvas.width / this.cell))
+            this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
             for(let x = 0; x < this.matrix[y].length; x++) {
                 this.matrix[y][x] = 0
             }
@@ -36,7 +38,16 @@ class Game {
         callback(this.matrix)
     }
 
-    draw(speed, callback) {
+    /**
+     * Draw the new generated matrix on canevas every @oaram generationSpeed ms
+     * @param {number} generationSpeed 
+     * @param {Function} callback 
+     */
+    draw(generationSpeed, callback) {
+        if (typeof generationSpeed !== 'number') {
+            callback(new Error('Number type expected for generationSpeed argument'))
+            return
+        }
         const interval = setInterval(() => {
             for (let y = 0; y < this.matrix.length; y++) {
                 for (let x = 0; x < this.matrix[y].length; x++) {
@@ -45,13 +56,16 @@ class Game {
                     } else {
                         this.ctx.fillStyle = '#d1d9ff'
                     }
-                    this.ctx.fillRect(x * this.cell, y * this.cell, this.cell, this.cell)
+                    this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize)
                 }
             }
-            callback(interval)
-        }, speed)
+            callback(null, interval, this.totalGen++)
+        }, generationSpeed)
     }
 
+    /**
+     * Simulated a new generation of cell and update matrix
+     */
     simulate() {
         const cellToDesactive = []
         const cellToActive = []
@@ -90,11 +104,87 @@ class Game {
         })
     }
 
-    reset() {
-        this.ctx.clearRect(0, 0, canvas.width, canvas.height)
+    /**
+     * 
+     * @param {number} width 
+     * @param {number} height 
+     */
+    resize(width, height) {
+        return new Promise((resolve, reject) => {
+            if (typeof width !== 'number') 
+                return reject(new Error('Number type expected for width argument'))
+
+            if (typeof height !== 'number')
+                return reject(new Error('Number type expected for heigth argument '))
+
+            const widthUpdate = Math.round(width / this.cellSize) - this.matrix[0].length
+            for (let y = 0; y < this.matrix.length; y++) {
+                if (widthUpdate >= 0) {
+                    if (widthUpdate === 1) {
+                        if (Math.random() >= 0.5) {
+                            this.matrix[y].push(0)
+                        } else {
+                            this.matrix[y].unshift(0)
+                        }
+                    } else {
+                        for (let i = 0; i < widthUpdate; i++) {
+                            if (i % 2 === 0) {
+                                this.matrix[y].push(0)
+                            } else {
+                                this.matrix[y].unshift(0)
+                            }
+                        }
+                    }
+                } else {
+                    if (widthUpdate === -1) {
+                        if (Math.random() >= 0.5) {
+                            this.matrix[y].pop()
+                        } else {
+                            this.matrix[y].shift()
+                        }
+                    } else {
+                        for (let i = widthUpdate; i < 0; i++) {
+                            if (i % 2 === 0) {
+                                this.matrix[y].pop()
+                            } else {
+                                this.matrix[y].shift()
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const heightUpdate = Math.round(height / this.cellSize) - this.matrix.length
+            if (heightUpdate >= 0) {
+                for (let i = 0; i < heightUpdate; i++) {
+                    this.matrix.push(new Array(this.matrix[0].length))
+                    for (let j = 0; j < this.matrix[0].length; j++) {
+                        this.matrix[this.matrix.length - 1][j] = 0
+                    }
+                }
+            } else {
+                for (let i = heightUpdate; i < 0; i++) {
+                    this.matrix.pop()
+                }
+            }
+
+            resolve({width: widthUpdate, height: heightUpdate})
+        })
+    }
+
+    clear() {
+        for (let y = 0; y < this.matrix.length; y++) {
+            for (let x = 0; x < this.matrix[y].length; x++) {
+                this.matrix[y][x] = 0
+                this.ctx.fillStyle = '#d1d9ff'
+                this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize)
+            }
+        }
     }
 }
 
+let game = null
+let canvas = null
 window.addEventListener('load', () => {
     canvas = document.getElementById('life-game')
     canvas.height = window.innerHeight / 1.2
@@ -104,8 +194,7 @@ window.addEventListener('load', () => {
     canvas.style.top = `calc(50% - ${canvas.height/2}px)`
     canvas.style.left = `calc(50% - ${canvas.width/2}px)`
     if (canvas.getContext) {
-        const ctx = canvas.getContext('2d')
-        const game = new Game(canvas, ctx, 5)
+        game = new LifeGame(canvas, 5)
         game.init(matrix => {
             matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2) + 1] = 1
             matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2)] = 1
@@ -113,13 +202,38 @@ window.addEventListener('load', () => {
             matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2)] = 1
             matrix[Math.round((canvas.height / 5) / 2) + 1][Math.round((canvas.width / 5) / 2)] = 1
         })
-        let cpt = 0
-        game.draw(100, interval => {
-            document.getElementById('generation').innerHTML = 'Generation : ' + cpt++
+        game.draw(100, (err, interval, cpt) => {
+            if (err !== null) {
+                throw err
+                return
+            }
+            document.getElementById('generation').innerHTML = 'Generation : ' + cpt
             game.simulate()
         })
     } else {
         throw new Error('Canevas unsupported on this browser')
     }
 })
+
+window.addEventListener('resize', () => {
+
+    game.resize(window.innerWidth / 1.2, window.innerHeight / 1.2).then(update => {
+        console.log('%d => width update, %d => height update', update.width, update.height)
+        canvas.height = window.innerHeight / 1.2
+        canvas.width = window.innerWidth / 1.2
+        canvas.style.top = `calc(50% - ${canvas.height/2}px)`
+        canvas.style.left = `calc(50% - ${canvas.width/2}px)`
+    }).catch(err => {
+        throw err
+    })
+
+})
+
+/*
+            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2) + 1] = 1
+            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2)] = 1
+            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2) - 1] = 1
+            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2)] = 1
+            matrix[Math.round((canvas.height / 5) / 2) + 1][Math.round((canvas.width / 5) / 2)] = 1
+*/
 
