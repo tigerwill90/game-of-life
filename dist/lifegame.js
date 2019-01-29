@@ -9051,6 +9051,8 @@ $export($export.G + $export.B + $export.F * MSIE, {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return LifeGame; });
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -9062,52 +9064,122 @@ var LifeGame =
 function () {
   /**
    * 
-   * @param {Object} canvas 
-   * @param {Number} cellSize 
+   * @param {Object} options 
    */
-  function LifeGame(canvas, cellSize) {
+  function LifeGame(options) {
     _classCallCheck(this, LifeGame);
 
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.cellSize = cellSize;
-    this.matrix = new Array(Math.round(this.canvas.height / this.cellSize));
-    this.totalGen = 0;
+    this._validateOptions(options);
 
-    for (var y = 0; y < this.matrix.length; y++) {
-      this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
+    this.canvas = document.getElementById(options.canvas);
+
+    if (this.canvas.getContext) {
+      this.totalGen = 0;
+      this.canvas.height = options.height;
+      this.canvas.width = options.width;
+      this.ctx = this.canvas.getContext('2d');
+      this.cellSize = options.cellSize;
+      this.cellColor = options.cellColor === undefined ? 'black' : options.cellColor;
+      this.backgroundColor = options.backgroundColor === undefined ? 'white' : options.backgroundColor; // customize canvas before creating matrix in case of width and height modification
+
+      if (options.customize !== undefined) {
+        options.customize(this.canvas);
+      }
+
+      this.matrix = null;
+
+      this._createMatrix();
+
+      if (options.init !== undefined) {
+        this._init(function () {
+          return 0;
+        });
+
+        options.init(this.matrix);
+      } else {
+        this._init(function () {
+          return Math.round(Math.random());
+        });
+      }
+
+      if (options.draw) {
+        this._draw();
+      }
+    } else {
+      throw new Error('Canevas unsupported on this browser');
     }
   }
   /**
-   * Initialize matrix with cell pattern
-   * @param {Function} callback 
+   * 
+   * @param {Object} options 
    */
 
 
   _createClass(LifeGame, [{
-    key: "init",
-    value: function init(callback) {
-      if (callback === undefined) {
-        for (var y = 0; y < this.matrix.length; y++) {
-          this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
+    key: "_validateOptions",
+    value: function _validateOptions(options) {
+      if (_typeof(options) !== 'object') throw new Error('constructor expect an object as argument');
+      if (options.canvas === undefined) throw new Error('canvas id name element is expected');
+      if (typeof options.canvas !== 'string') throw new Error('canavas option must be a string');
+      if (options.width === undefined) throw new Error('width option is expected');
+      if (typeof options.width !== 'number') throw new Error('width option must be a number');
+      if (options.height === undefined) throw new Error('height option is expected');
+      if (typeof options.height !== 'number') throw new Error('height option must be a number');
+      if (options.cellSize === 'undefined') throw new Error('cellSize option is expected');
+      if (typeof options.cellSize !== 'number') throw new Error('cellSize option must be a number');
+      if (options.cellColor !== undefined && typeof options.cellColor !== 'string') throw new Error('cellColor option must be a string');
+      if (options.backgroundColor !== undefined && typeof options.backgroundColor !== 'string') throw new Error('backgroundColor option must be a string');
+      if (options.customize !== undefined && typeof options.customize !== 'function') throw new Error('customize option must be a function');
+      if (options.init !== undefined && typeof options.init !== 'function') throw new Error('init option must be a function');
+      if (options.draw !== undefined && typeof options.draw !== 'boolean') throw new Error('draw option must be a boolean');
+    }
+    /**
+     * Create a matrix from a ratio between cellSize and canvas dimension
+     */
 
-          for (var x = 0; x < this.matrix[y].length; x++) {
-            this.matrix[y][x] = Math.round(Math.random());
+  }, {
+    key: "_createMatrix",
+    value: function _createMatrix() {
+      this.matrix = new Array(Math.round(this.canvas.height / this.cellSize));
+
+      for (var y = 0; y < this.matrix.length; y++) {
+        this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
+      }
+    }
+    /**
+     * Init state for each indice with the an activation function
+     * @param {Function} fn 
+     */
+
+  }, {
+    key: "_init",
+    value: function _init(fn) {
+      for (var y = 0; y < this.matrix.length; y++) {
+        this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
+
+        for (var x = 0; x < this.matrix[y].length; x++) {
+          this.matrix[y][x] = fn();
+        }
+      }
+    }
+    /**
+     * Color canvas according matrix state
+     */
+
+  }, {
+    key: "_draw",
+    value: function _draw() {
+      for (var y = 0; y < this.matrix.length; y++) {
+        for (var x = 0; x < this.matrix[y].length; x++) {
+          if (this.matrix[y][x] === 1) {
+            this.ctx.fillStyle = this.cellColor;
+          } else {
+            this.ctx.fillStyle = this.backgroundColor;
           }
-        }
 
-        return;
-      }
-
-      for (var _y = 0; _y < this.matrix.length; _y++) {
-        this.matrix[_y] = new Array(Math.round(this.canvas.width / this.cellSize));
-
-        for (var _x = 0; _x < this.matrix[_y].length; _x++) {
-          this.matrix[_y][_x] = 0;
+          this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
         }
       }
-
-      callback(this.matrix);
     }
     /**
      * Animate the new generated matrix on canevas every @oaram generationSpeed ms
@@ -9116,8 +9188,8 @@ function () {
      */
 
   }, {
-    key: "animate",
-    value: function animate(generationSpeed, callback) {
+    key: "run",
+    value: function run(generationSpeed, callback) {
       var _this = this;
 
       if (typeof generationSpeed !== 'number') {
@@ -9126,17 +9198,7 @@ function () {
       }
 
       var interval = setInterval(function () {
-        for (var y = 0; y < _this.matrix.length; y++) {
-          for (var x = 0; x < _this.matrix[y].length; x++) {
-            if (_this.matrix[y][x] === 1) {
-              _this.ctx.fillStyle = '#3f51b5';
-            } else {
-              _this.ctx.fillStyle = '#d1d9ff';
-            }
-
-            _this.ctx.fillRect(x * _this.cellSize, y * _this.cellSize, _this.cellSize, _this.cellSize);
-          }
-        }
+        _this._draw();
 
         callback(null, interval, _this.totalGen++);
       }, generationSpeed);
@@ -9146,8 +9208,8 @@ function () {
      */
 
   }, {
-    key: "simulate",
-    value: function simulate() {
+    key: "nextSimulation",
+    value: function nextSimulation() {
       var _this2 = this;
 
       var cellToDesactive = [];
@@ -9240,19 +9302,19 @@ function () {
         }
 
         if (widthUpdate < 0) {
-          for (var _y2 = 0; _y2 < _this3.matrix.length; _y2++) {
+          for (var _y = 0; _y < _this3.matrix.length; _y++) {
             if (widthUpdate === -1) {
               if (Math.random() >= 0.5) {
-                _this3.matrix[_y2].pop();
+                _this3.matrix[_y].pop();
               } else {
-                _this3.matrix[_y2].shift();
+                _this3.matrix[_y].shift();
               }
             } else {
               for (var _i = widthUpdate; _i < 0; _i++) {
                 if (_i % 2 === 0) {
-                  _this3.matrix[_y2].pop();
+                  _this3.matrix[_y].pop();
                 } else {
-                  _this3.matrix[_y2].shift();
+                  _this3.matrix[_y].shift();
                 }
               }
             }
@@ -9277,10 +9339,9 @@ function () {
           }
         }
 
-        resolve({
-          width: widthUpdate,
-          height: heightUpdate
-        });
+        _this3.canvas.width = width;
+        _this3.canvas.height = height;
+        resolve(_this3.canvas);
       });
     }
   }, {

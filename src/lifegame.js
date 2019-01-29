@@ -2,41 +2,125 @@ export default class LifeGame {
 
     /**
      * 
-     * @param {Object} canvas 
-     * @param {Number} cellSize 
+     * @param {Object} options 
      */
-    constructor(canvas, cellSize) {
-        this.canvas = canvas
-        this.ctx = canvas.getContext('2d')
-        this.cellSize = cellSize
+    constructor(options) {
+        this._validateOptions(options)
+        this.canvas = document.getElementById(options.canvas)
+        if (this.canvas.getContext) {
+            this.totalGen = 0
+            this.canvas.height = options.height
+            this.canvas.width = options.width
+            this.ctx = this.canvas.getContext('2d')
+            this.cellSize = options.cellSize
+            this.cellColor = options.cellColor === undefined ? 'black' : options.cellColor
+            this.backgroundColor = options.backgroundColor === undefined ? 'white' : options.backgroundColor
+            // customize canvas before creating matrix in case of width and height modification
+            if (options.customize !== undefined) {
+                options.customize(this.canvas)
+            }
+            this.matrix = null
+            this._createMatrix()
+            if (options.init !== undefined) {
+                this._init(() => 0)
+                options.init(this.matrix)
+            } else {
+                this._init(() => Math.round(Math.random()))
+            }
+            if (options.draw) {
+                this._draw()
+            }
+
+        } else {
+            throw new Error('Canevas unsupported on this browser')
+        }
+    }
+
+    /**
+     * 
+     * @param {Object} options 
+     */
+    _validateOptions(options) {
+        if (typeof options !== 'object')
+            throw new Error('constructor expect an object as argument')
+
+        if (options.canvas === undefined)
+            throw new Error('canvas id name element is expected')
+
+        if (typeof options.canvas !== 'string')
+            throw new Error('canavas option must be a string')
+
+        if (options.width === undefined)
+            throw new Error('width option is expected')
+
+        if (typeof options.width !== 'number')
+            throw new Error('width option must be a number')
+
+        if (options.height === undefined)
+            throw new Error('height option is expected')
+
+        if (typeof options.height !== 'number')
+            throw new Error('height option must be a number')
+
+        if (options.cellSize === 'undefined')
+            throw new Error('cellSize option is expected')
+        
+        if (typeof options.cellSize !== 'number')
+            throw new Error('cellSize option must be a number')
+
+        if (options.cellColor !== undefined && typeof options.cellColor !== 'string')
+            throw new Error('cellColor option must be a string')
+
+        if (options.backgroundColor !== undefined && typeof options.backgroundColor !== 'string')
+            throw new Error('backgroundColor option must be a string')
+        
+        if (options.customize !== undefined && typeof options.customize !== 'function')
+            throw new Error('customize option must be a function')
+
+        if (options.init !== undefined && typeof options.init !== 'function')
+            throw new Error('init option must be a function')
+        
+        if (options.draw !== undefined && typeof options.draw !== 'boolean')
+            throw new Error('draw option must be a boolean')
+    }
+
+    /**
+     * Create a matrix from a ratio between cellSize and canvas dimension
+     */
+    _createMatrix() {
         this.matrix = new Array(Math.round(this.canvas.height / this.cellSize))
-        this.totalGen = 0
         for (let y = 0; y < this.matrix.length; y++) {
             this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
         }
     }
 
     /**
-     * Initialize matrix with cell pattern
-     * @param {Function} callback 
+     * Init state for each indice with the an activation function
+     * @param {Function} fn 
      */
-    init(callback) {
-        if (callback === undefined) {
-            for (let y = 0; y < this.matrix.length; y++) {
-                this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
-                for(let x = 0; x < this.matrix[y].length; x++) {
-                    this.matrix[y][x] = Math.round(Math.random())
-                }
-            }
-            return
-        }
+    _init(fn) {
         for (let y = 0; y < this.matrix.length; y++) {
             this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize))
             for(let x = 0; x < this.matrix[y].length; x++) {
-                this.matrix[y][x] = 0
+                this.matrix[y][x] = fn()
             }
         }
-        callback(this.matrix)
+    }
+
+    /**
+     * Color canvas according matrix state
+     */
+    _draw() {
+        for (let y = 0; y < this.matrix.length; y++) {
+            for (let x = 0; x < this.matrix[y].length; x++) {
+                if (this.matrix[y][x] === 1) {
+                    this.ctx.fillStyle = this.cellColor
+                } else {
+                    this.ctx.fillStyle = this.backgroundColor
+                }
+                this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize)
+            }
+        }
     }
 
     /**
@@ -44,22 +128,13 @@ export default class LifeGame {
      * @param {Number} generationSpeed 
      * @param {Function} callback 
      */
-    animate(generationSpeed, callback) {
+    run(generationSpeed, callback) {
         if (typeof generationSpeed !== 'number') {
             callback(new Error('Number type expected for generationSpeed argument'))
             return
         }
         const interval = setInterval(() => {
-            for (let y = 0; y < this.matrix.length; y++) {
-                for (let x = 0; x < this.matrix[y].length; x++) {
-                    if (this.matrix[y][x] === 1) {
-                        this.ctx.fillStyle = '#3f51b5'
-                    } else {
-                        this.ctx.fillStyle = '#d1d9ff'
-                    }
-                    this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize)
-                }
-            }
+            this._draw()
             callback(null, interval, this.totalGen++)
         }, generationSpeed)
     }
@@ -67,7 +142,7 @@ export default class LifeGame {
     /**
      * Simulated a new generation of cell and update matrix
      */
-    simulate() {
+    nextSimulation() {
         const cellToDesactive = []
         const cellToActive = []
         for (let y = 0; y < this.matrix.length; y++) {
@@ -175,7 +250,10 @@ export default class LifeGame {
                 }
             }
 
-            resolve({width: widthUpdate, height: heightUpdate})
+            this.canvas.width = width
+            this.canvas.height = height
+
+            resolve(this.canvas)
         })
     }
 

@@ -2,7 +2,7 @@
   "name": "life-game",
   "version": "0.0.1",
   "description": "",
-  "main": "lifegame.js",
+  "main": "index.js",
   "directories": {
     "test": "tests"
   },
