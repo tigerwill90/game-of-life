@@ -1,9 +1,10 @@
-/**
- * Règle du jeu de la vie
- * 1) Survie : si une case pleine est entourée par 2 ou 3 voisines, elle survie au coup suivant
- * 2) Naissance : si une case vide est entouée par exactement 3 voisines, elle devient vivante au tour suivant
- */
-class LifeGame {
+export default class LifeGame {
+
+    /**
+     * 
+     * @param {Object} canvas 
+     * @param {Number} cellSize 
+     */
     constructor(canvas, cellSize) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')
@@ -39,11 +40,11 @@ class LifeGame {
     }
 
     /**
-     * Draw the new generated matrix on canevas every @oaram generationSpeed ms
-     * @param {number} generationSpeed 
+     * Animate the new generated matrix on canevas every @oaram generationSpeed ms
+     * @param {Number} generationSpeed 
      * @param {Function} callback 
      */
-    draw(generationSpeed, callback) {
+    animate(generationSpeed, callback) {
         if (typeof generationSpeed !== 'number') {
             callback(new Error('Number type expected for generationSpeed argument'))
             return
@@ -105,9 +106,9 @@ class LifeGame {
     }
 
     /**
-     * 
-     * @param {number} width 
-     * @param {number} height 
+     * Resize matrix
+     * @param {Number} width 
+     * @param {Number} height 
      */
     resize(width, height) {
         return new Promise((resolve, reject) => {
@@ -118,8 +119,8 @@ class LifeGame {
                 return reject(new Error('Number type expected for heigth argument '))
 
             const widthUpdate = Math.round(width / this.cellSize) - this.matrix[0].length
-            for (let y = 0; y < this.matrix.length; y++) {
-                if (widthUpdate >= 0) {
+            if (widthUpdate > 0) {
+                for (let y = 0; y < this.matrix.length; y++) {
                     if (widthUpdate === 1) {
                         if (Math.random() >= 0.5) {
                             this.matrix[y].push(0)
@@ -135,7 +136,11 @@ class LifeGame {
                             }
                         }
                     }
-                } else {
+                }
+            } 
+            
+            if (widthUpdate < 0) {
+                for (let y = 0; y < this.matrix.length; y++) {
                     if (widthUpdate === -1) {
                         if (Math.random() >= 0.5) {
                             this.matrix[y].pop()
@@ -155,14 +160,16 @@ class LifeGame {
             }
             
             const heightUpdate = Math.round(height / this.cellSize) - this.matrix.length
-            if (heightUpdate >= 0) {
+            if (heightUpdate > 0) {
                 for (let i = 0; i < heightUpdate; i++) {
                     this.matrix.push(new Array(this.matrix[0].length))
                     for (let j = 0; j < this.matrix[0].length; j++) {
                         this.matrix[this.matrix.length - 1][j] = 0
                     }
                 }
-            } else {
+            } 
+            
+            if (heightUpdate < 0) {
                 for (let i = heightUpdate; i < 0; i++) {
                     this.matrix.pop()
                 }
@@ -182,58 +189,3 @@ class LifeGame {
         }
     }
 }
-
-let game = null
-let canvas = null
-window.addEventListener('load', () => {
-    canvas = document.getElementById('life-game')
-    canvas.height = window.innerHeight / 1.2
-    canvas.width = window.innerWidth / 1.2
-    //canvas.height = 100
-    //canvas.width = 100
-    canvas.style.top = `calc(50% - ${canvas.height/2}px)`
-    canvas.style.left = `calc(50% - ${canvas.width/2}px)`
-    if (canvas.getContext) {
-        game = new LifeGame(canvas, 5)
-        game.init(matrix => {
-            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2) + 1] = 1
-            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2)] = 1
-            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2) - 1] = 1
-            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2)] = 1
-            matrix[Math.round((canvas.height / 5) / 2) + 1][Math.round((canvas.width / 5) / 2)] = 1
-        })
-        game.draw(100, (err, interval, cpt) => {
-            if (err !== null) {
-                throw err
-                return
-            }
-            document.getElementById('generation').innerHTML = 'Generation : ' + cpt
-            game.simulate()
-        })
-    } else {
-        throw new Error('Canevas unsupported on this browser')
-    }
-})
-
-window.addEventListener('resize', () => {
-
-    game.resize(window.innerWidth / 1.2, window.innerHeight / 1.2).then(update => {
-        console.log('%d => width update, %d => height update', update.width, update.height)
-        canvas.height = window.innerHeight / 1.2
-        canvas.width = window.innerWidth / 1.2
-        canvas.style.top = `calc(50% - ${canvas.height/2}px)`
-        canvas.style.left = `calc(50% - ${canvas.width/2}px)`
-    }).catch(err => {
-        throw err
-    })
-
-})
-
-/*
-            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2) + 1] = 1
-            matrix[Math.round((canvas.height / 5) / 2) - 1][Math.round((canvas.width / 5) / 2)] = 1
-            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2) - 1] = 1
-            matrix[Math.round((canvas.height / 5) / 2)][Math.round((canvas.width / 5) / 2)] = 1
-            matrix[Math.round((canvas.height / 5) / 2) + 1][Math.round((canvas.width / 5) / 2)] = 1
-*/
-
