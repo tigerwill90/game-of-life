@@ -9074,37 +9074,36 @@ function () {
     this.canvas = document.getElementById(options.canvas);
 
     if (this.canvas.getContext) {
-      this.totalGen = 0;
+      this.cptGen = 1;
+      this.renderGen = 1;
+      this.resizeSide = true;
+      this.paused = false;
       this.canvas.height = options.height;
       this.canvas.width = options.width;
       this.ctx = this.canvas.getContext('2d');
-      this.cellSize = options.cellSize;
-      this.cellColor = options.cellColor === undefined ? 'black' : options.cellColor;
-      this.backgroundColor = options.backgroundColor === undefined ? 'white' : options.backgroundColor; // customize canvas before creating matrix in case of width and height modification
+      this.size = options.size;
+      this.color = options.color === undefined ? 'black' : options.color;
+      this.background = options.background === undefined ? 'white' : options.background; // customize canvas before creating matrix in case of width and height modification
 
       if (options.customize !== undefined) {
         options.customize(this.canvas);
       }
 
-      this.matrix = null;
-
-      this._createMatrix();
+      this.matrix = this._createMatrix();
 
       if (options.init !== undefined) {
-        this._init(function () {
+        this._populate(this.matrix, function () {
           return 0;
         });
 
         options.init(this.matrix);
       } else {
-        this._init(function () {
+        this._populate(this.matrix, function () {
           return Math.round(Math.random());
         });
       }
 
-      if (options.draw) {
-        this._draw();
-      }
+      this._draw();
     } else {
       throw new Error('Canevas unsupported on this browser');
     }
@@ -9125,26 +9124,27 @@ function () {
       if (typeof options.width !== 'number') throw new Error('width option must be a number');
       if (options.height === undefined) throw new Error('height option is expected');
       if (typeof options.height !== 'number') throw new Error('height option must be a number');
-      if (options.cellSize === 'undefined') throw new Error('cellSize option is expected');
-      if (typeof options.cellSize !== 'number') throw new Error('cellSize option must be a number');
-      if (options.cellColor !== undefined && typeof options.cellColor !== 'string') throw new Error('cellColor option must be a string');
-      if (options.backgroundColor !== undefined && typeof options.backgroundColor !== 'string') throw new Error('backgroundColor option must be a string');
+      if (options.size === 'undefined') throw new Error('size option is expected');
+      if (typeof options.size !== 'number') throw new Error('size option must be a number');
+      if (options.color !== undefined && typeof options.color !== 'string') throw new Error('color option must be a string');
+      if (options.background !== undefined && typeof options.background !== 'string') throw new Error('background option must be a string');
       if (options.customize !== undefined && typeof options.customize !== 'function') throw new Error('customize option must be a function');
       if (options.init !== undefined && typeof options.init !== 'function') throw new Error('init option must be a function');
-      if (options.draw !== undefined && typeof options.draw !== 'boolean') throw new Error('draw option must be a boolean');
     }
     /**
-     * Create a matrix from a ratio between cellSize and canvas dimension
+     * Create a newt matrix from a ratio between size and canvas dimension
      */
 
   }, {
     key: "_createMatrix",
     value: function _createMatrix() {
-      this.matrix = new Array(Math.round(this.canvas.height / this.cellSize));
+      var matrix = new Array(Math.round(this.canvas.height / this.size));
 
-      for (var y = 0; y < this.matrix.length; y++) {
-        this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
+      for (var nI = 0; nI < matrix.length; nI++) {
+        matrix[nI] = new Array(Math.round(this.canvas.width / this.size));
       }
+
+      return matrix;
     }
     /**
      * Init state for each indice with the an activation function
@@ -9152,13 +9152,11 @@ function () {
      */
 
   }, {
-    key: "_init",
-    value: function _init(fn) {
-      for (var y = 0; y < this.matrix.length; y++) {
-        this.matrix[y] = new Array(Math.round(this.canvas.width / this.cellSize));
-
-        for (var x = 0; x < this.matrix[y].length; x++) {
-          this.matrix[y][x] = fn();
+    key: "_populate",
+    value: function _populate(matrix, fn) {
+      for (var nI = 0; nI < matrix.length; nI++) {
+        for (var mI = 0; mI < matrix[nI].length; mI++) {
+          matrix[nI][mI] = fn(nI, mI);
         }
       }
     }
@@ -9169,62 +9167,40 @@ function () {
   }, {
     key: "_draw",
     value: function _draw() {
-      for (var y = 0; y < this.matrix.length; y++) {
-        for (var x = 0; x < this.matrix[y].length; x++) {
-          if (this.matrix[y][x] === 1) {
-            this.ctx.fillStyle = this.cellColor;
+      for (var nI = 0; nI < this.matrix.length; nI++) {
+        for (var mI = 0; mI < this.matrix[nI].length; mI++) {
+          if (this.matrix[nI][mI] === 1) {
+            this.ctx.fillStyle = this.color;
           } else {
-            this.ctx.fillStyle = this.backgroundColor;
+            this.ctx.fillStyle = this.background;
           }
 
-          this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+          this.ctx.fillRect(mI * this.size, nI * this.size, this.size, this.size);
         }
       }
-    }
-    /**
-     * Animate the new generated matrix on canevas every @oaram generationSpeed ms
-     * @param {Number} generationSpeed 
-     * @param {Function} callback 
-     */
-
-  }, {
-    key: "run",
-    value: function run(generationSpeed, callback) {
-      var _this = this;
-
-      if (typeof generationSpeed !== 'number') {
-        callback(new Error('Number type expected for generationSpeed argument'));
-        return;
-      }
-
-      var interval = setInterval(function () {
-        _this._draw();
-
-        callback(null, interval, _this.totalGen++);
-      }, generationSpeed);
     }
     /**
      * Simulated a new generation of cell and update matrix
      */
 
   }, {
-    key: "nextSimulation",
-    value: function nextSimulation() {
-      var _this2 = this;
+    key: "_nextSimulation",
+    value: function _nextSimulation() {
+      var _this = this;
 
       var cellToDesactive = [];
       var cellToActive = [];
 
-      var _loop = function _loop(y) {
-        var _loop2 = function _loop2(x) {
+      var _loop = function _loop(nI) {
+        var _loop2 = function _loop2(mI) {
           var countCellNeighbour = function countCellNeighbour() {
             var cpt = 0;
 
             for (var i = -1; i <= 1; i++) {
               for (var j = -1; j <= 1; j++) {
                 if (i !== 0 || j !== 0) {
-                  if (_this2.matrix[y + i] !== undefined && _this2.matrix[y + i][x + j] !== undefined) {
-                    cpt += _this2.matrix[y + i][x + j];
+                  if (_this.matrix[nI + i] !== undefined && _this.matrix[nI + i][mI + j] !== undefined) {
+                    cpt += _this.matrix[nI + i][mI + j];
 
                     if (cpt > 3) {
                       return cpt;
@@ -9239,30 +9215,62 @@ function () {
 
           var countActive = countCellNeighbour();
 
-          if (_this2.matrix[y][x] === 1 && (countActive < 2 || countActive > 3)) {
-            cellToDesactive.push([y, x]);
+          if (_this.matrix[nI][mI] === 1 && (countActive < 2 || countActive > 3)) {
+            cellToDesactive.push([nI, mI]);
           }
 
-          if (_this2.matrix[y][x] === 0 && countActive === 3) {
-            cellToActive.push([y, x]);
+          if (_this.matrix[nI][mI] === 0 && countActive === 3) {
+            cellToActive.push([nI, mI]);
           }
         };
 
-        for (var x = 0; x < _this2.matrix[y].length; x++) {
-          _loop2(x);
+        for (var mI = 0; mI < _this.matrix[nI].length; mI++) {
+          _loop2(mI);
         }
       };
 
-      for (var y = 0; y < this.matrix.length; y++) {
-        _loop(y);
+      for (var nI = 0; nI < this.matrix.length; nI++) {
+        _loop(nI);
       }
 
       cellToDesactive.forEach(function (coord) {
-        _this2.matrix[coord[0]][coord[1]] = 0;
+        _this.matrix[coord[0]][coord[1]] = 0;
       });
       cellToActive.forEach(function (coord) {
-        _this2.matrix[coord[0]][coord[1]] = 1;
+        _this.matrix[coord[0]][coord[1]] = 1;
       });
+    }
+    /**
+     * Play game
+     * @param {Object} options 
+     * @param {Function} callback 
+     */
+
+  }, {
+    key: "play",
+    value: function play(options, callback) {
+      var _this2 = this;
+
+      if (options.speed === undefined) return callback(new Error('speed option is expected'));
+      if (typeof options.speed !== 'number') return callback(new Error('speed option must be a number'));
+      if (options.render !== undefined && typeof options.render !== 'number') return callback(new Error('render option must be a number'));
+      if (options.max !== undefined && typeof options.max !== 'number') return callback(new Error('max option must be a number'));
+      if (options.render !== undefined) this.renderGen = options.render;
+      var interval = setInterval(function () {
+        if (options.max !== undefined && options.max === _this2.cptGen) {
+          clearInterval(interval);
+        }
+
+        if (!_this2.paused) {
+          _this2._nextSimulation();
+        }
+
+        if (_this2.cptGen % _this2.renderGen === 0) {
+          _this2._draw();
+        }
+
+        callback(null, _this2.cptGen++, interval);
+      }, options.speed);
     }
     /**
      * Resize matrix
@@ -9278,69 +9286,117 @@ function () {
       return new Promise(function (resolve, reject) {
         if (typeof width !== 'number') return reject(new Error('Number type expected for width argument'));
         if (typeof height !== 'number') return reject(new Error('Number type expected for heigth argument '));
+        _this3.canvas.width = width;
+        _this3.canvas.height = height;
 
-        var widthUpdate = Math.round(width / _this3.cellSize) - _this3.matrix[0].length;
+        var widthUpdate = Math.round(width / _this3.size) - _this3.matrix[0].length; // Create a new matrix according to the new width and height
+
 
         if (widthUpdate > 0) {
-          for (var y = 0; y < _this3.matrix.length; y++) {
-            if (widthUpdate === 1) {
-              if (Math.random() >= 0.5) {
-                _this3.matrix[y].push(0);
-              } else {
-                _this3.matrix[y].unshift(0);
+          var newMatrix = _this3._createMatrix();
+
+          for (var nI = 0; nI < newMatrix.length; nI++) {
+            for (var mI = 0; mI < newMatrix[nI].length; mI++) {
+              if (_this3.matrix[nI][mI] === 1) {
+                var mIu = mI + Math.floor(widthUpdate / 2);
+                newMatrix[nI][mIu] = _this3.matrix[nI][mI];
               }
-            } else {
-              for (var i = 0; i < widthUpdate; i++) {
-                if (i % 2 === 0) {
-                  _this3.matrix[y].push(0);
-                } else {
-                  _this3.matrix[y].unshift(0);
-                }
+
+              if (newMatrix[nI][mI] !== 1) {
+                newMatrix[nI][mI] = 0;
               }
             }
           }
+
+          _this3.matrix = newMatrix;
         }
 
         if (widthUpdate < 0) {
-          for (var _y = 0; _y < _this3.matrix.length; _y++) {
-            if (widthUpdate === -1) {
-              if (Math.random() >= 0.5) {
-                _this3.matrix[_y].pop();
-              } else {
-                _this3.matrix[_y].shift();
+          console.log(widthUpdate, Math.abs(Math.floor(widthUpdate / 2)), Math.abs(Math.round(widthUpdate / 2)));
+
+          var _newMatrix = _this3._createMatrix();
+
+          for (var _nI = 0; _nI < _this3.matrix.length; _nI++) {
+            for (var _mI = Math.abs(Math.floor(widthUpdate / 2)); _mI < _this3.matrix[_nI].length - Math.abs(Math.round(widthUpdate / 2)); _mI++) {
+              if (_this3.matrix[_nI][_mI] === 1) {
+                console.log(_mI, _mI - Math.abs(Math.floor(widthUpdate / 2)));
+                _newMatrix[_nI][_mI - Math.abs(Math.floor(widthUpdate / 2))] = _this3.matrix[_nI][_mI];
               }
-            } else {
-              for (var _i = widthUpdate; _i < 0; _i++) {
-                if (_i % 2 === 0) {
-                  _this3.matrix[_y].pop();
+
+              if (_newMatrix[_nI][_mI] !== 1) {
+                _newMatrix[_nI][_mI] = 0;
+              }
+            }
+          }
+
+          _this3.matrix = _newMatrix;
+        }
+        /*
+        const widthUpdate = Math.round(width / this.size) - this.matrix[0].length
+        if (widthUpdate > 0) {
+            for (let x = 0; x < this.matrix.length; x++) {
+                if (widthUpdate === 1) {
+                    if (this.resizeSide) {
+                        this.matrix[x].push(0)
+                        this.resizeSide = !this.resizeSide
+                    } else {
+                        this.matrix[x].unshift(0)
+                        this.resizeSide = !this.resizeSide
+                    }
                 } else {
-                  _this3.matrix[_y].shift();
+                    for (let i = 0; i < widthUpdate; i++) {
+                        if (i % 2 === 0) {
+                            this.matrix[x].push(0)
+                        } else {
+                            this.matrix[x].unshift(0)
+                        }
+                    }
                 }
-              }
             }
-          }
+        } 
+        
+        if (widthUpdate < 0) {
+            for (let x = 0; x < this.matrix.length; x++) {
+                if (widthUpdate === -1) {
+                    if (this.resizeSide) {
+                        this.matrix[x].pop()
+                        this.resizeSide = !this.resizeSide
+                    } else {
+                        this.matrix[x].shift()
+                        this.resizeSide = !this.resizeSide
+                    }
+                } else {
+                    for (let i = widthUpdate; i < 0; i++) {
+                        if (i % 2 === 0) {
+                            this.matrix[x].pop()
+                        } else {
+                            this.matrix[x].shift()
+                        }
+                    }
+                }
+            }
         }
-
-        var heightUpdate = Math.round(height / _this3.cellSize) - _this3.matrix.length;
-
+        
+        const heightUpdate = Math.round(height / this.size) - this.matrix.length
         if (heightUpdate > 0) {
-          for (var _i2 = 0; _i2 < heightUpdate; _i2++) {
-            _this3.matrix.push(new Array(_this3.matrix[0].length));
-
-            for (var j = 0; j < _this3.matrix[0].length; j++) {
-              _this3.matrix[_this3.matrix.length - 1][j] = 0;
+            for (let i = 0; i < heightUpdate; i++) {
+                this.matrix.push(new Array(this.matrix[0].length))
+                for (let j = 0; j < this.matrix[0].length; j++) {
+                    this.matrix[this.matrix.length - 1][j] = 0
+                }
             }
-          }
-        }
-
+        } 
+        
         if (heightUpdate < 0) {
-          for (var _i3 = heightUpdate; _i3 < 0; _i3++) {
-            _this3.matrix.pop();
-          }
+            for (let i = heightUpdate; i < 0; i++) {
+                this.matrix.pop()
+            }
         }
+          this.canvas.width = width
+        this.canvas.height = height
+        */
 
-        _this3.canvas.width = width;
-        _this3.canvas.height = height;
+
         resolve(_this3.canvas);
       });
     }
@@ -9351,7 +9407,7 @@ function () {
         for (var x = 0; x < this.matrix[y].length; x++) {
           this.matrix[y][x] = 0;
           this.ctx.fillStyle = '#d1d9ff';
-          this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+          this.ctx.fillRect(x * this.size, y * this.size, this.size, this.size);
         }
       }
     }
