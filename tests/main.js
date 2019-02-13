@@ -4,7 +4,6 @@
  * 2) Naissance : si une case vide est entouée par exactement 3 voisines, elle devient vivante au tour suivant
  */
 
-let canvas = null
 let g = null
 
 window.addEventListener('load', () => {
@@ -24,7 +23,6 @@ window.addEventListener('load', () => {
     g.play({ speed: 0, render: 1 }, (err, cpt) => {
         if (err !== null) {
             throw err
-            return
         }
         document.getElementById('generation').innerHTML = 'Generations : <b>' + cpt + '</b>'
     })

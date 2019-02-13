@@ -215,7 +215,6 @@ export default class GameOfLife {
 
             // TODO, fix this shit
             if (widthUpdate < 0) {
-                console.log(widthUpdate, Math.abs(Math.floor(widthUpdate / 2)), Math.abs(Math.round(widthUpdate / 2)))
                 const newMatrix = new Matrix(Math.round(height / this.size), Math.round(width / this.size)).matrix
 
                 for (let nI = 0; nI < this.matrix.length; nI++) {
@@ -225,7 +224,6 @@ export default class GameOfLife {
                         mI++
                     ) {
                         if (this.matrix[nI][mI] === 1) {
-                            console.log(mI, mI - Math.abs(Math.floor(widthUpdate / 2)))
                             newMatrix[nI][mI - Math.abs(Math.floor(widthUpdate / 2))] = this.matrix[nI][mI]
                         }
 

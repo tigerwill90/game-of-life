@@ -61,7 +61,6 @@ export default class Node {
     }
 
     _getChildNodePosition(tuple) {
-        let index = -1
         const vm = this.bounds.x + this.bounds.width / 2,
             hm = this.bounds.y + this.bounds.width / 2,
             w = tuple.x < vm,
