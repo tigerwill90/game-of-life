@@ -5,7 +5,7 @@ const options = {
     output: {
         filename: process.env.NODE_ENV === 'production' ? 'lifegame.min.js' : 'lifegame.js',
         path: path.resolve(__dirname, 'dist'),
-        library: 'LifeGame',
+        library: 'GameOfLife',
         libraryExport: 'default' // es6 export default
     },
     mode: process.env.NODE_ENV,

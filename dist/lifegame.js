@@ -1,4 +1,4 @@
-var LifeGame =
+var GameOfLife =
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -9050,7 +9050,8 @@ $export($export.G + $export.B + $export.F * MSIE, {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return LifeGame; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return GameOfLife; });
+/* harmony import */ var _matrix__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./matrix */ "./src/matrix.js");
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -9059,15 +9060,16 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-var LifeGame =
+
+
+var GameOfLife =
 /*#__PURE__*/
 function () {
   /**
-   * 
-   * @param {Object} options 
+   * @param {Object} options
    */
-  function LifeGame(options) {
-    _classCallCheck(this, LifeGame);
+  function GameOfLife(options) {
+    _classCallCheck(this, GameOfLife);
 
     this._validateOptions(options);
 
@@ -9089,14 +9091,14 @@ function () {
         options.customize(this.canvas);
       }
 
-      this.matrix = this._createMatrix();
+      this.matrix = new _matrix__WEBPACK_IMPORTED_MODULE_0__["default"](Math.round(options.height / options.size), Math.round(options.width / options.size)).matrix;
 
-      if (options.init !== undefined) {
+      if (options.pattern !== undefined) {
         this._populate(this.matrix, function () {
           return 0;
         });
 
-        options.init(this.matrix);
+        options.pattern(this.matrix);
       } else {
         this._populate(this.matrix, function () {
           return Math.round(Math.random());
@@ -9109,12 +9111,12 @@ function () {
     }
   }
   /**
-   * 
-   * @param {Object} options 
+   *
+   * @param {Object} options
    */
 
 
-  _createClass(LifeGame, [{
+  _createClass(GameOfLife, [{
     key: "_validateOptions",
     value: function _validateOptions(options) {
       if (_typeof(options) !== 'object') throw new Error('constructor expect an object as argument');
@@ -9129,26 +9131,12 @@ function () {
       if (options.color !== undefined && typeof options.color !== 'string') throw new Error('color option must be a string');
       if (options.background !== undefined && typeof options.background !== 'string') throw new Error('background option must be a string');
       if (options.customize !== undefined && typeof options.customize !== 'function') throw new Error('customize option must be a function');
-      if (options.init !== undefined && typeof options.init !== 'function') throw new Error('init option must be a function');
+      if (options.pattern !== undefined && typeof options.pattern !== 'function') throw new Error('pattern option must be a function');
     }
     /**
-     * Create a newt matrix from a ratio between size and canvas dimension
-     */
-
-  }, {
-    key: "_createMatrix",
-    value: function _createMatrix() {
-      var matrix = new Array(Math.round(this.canvas.height / this.size));
-
-      for (var nI = 0; nI < matrix.length; nI++) {
-        matrix[nI] = new Array(Math.round(this.canvas.width / this.size));
-      }
-
-      return matrix;
-    }
-    /**
-     * Init state for each indice with the an activation function
-     * @param {Function} fn 
+     * Populate state for each indice with the an activation function
+     * @param {Array} matrix
+     * @param {Function} fn
      */
 
   }, {
@@ -9167,25 +9155,27 @@ function () {
   }, {
     key: "_draw",
     value: function _draw() {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
       for (var nI = 0; nI < this.matrix.length; nI++) {
         for (var mI = 0; mI < this.matrix[nI].length; mI++) {
           if (this.matrix[nI][mI] === 1) {
             this.ctx.fillStyle = this.color;
-          } else {
-            this.ctx.fillStyle = this.background;
+            this.ctx.fillRect(mI * this.size, nI * this.size, this.size, this.size);
           }
-
-          this.ctx.fillRect(mI * this.size, nI * this.size, this.size, this.size);
         }
       }
     }
+  }, {
+    key: "_hashLifeSimulation",
+    value: function _hashLifeSimulation() {}
     /**
      * Simulated a new generation of cell and update matrix
      */
 
   }, {
-    key: "_nextSimulation",
-    value: function _nextSimulation() {
+    key: "_basicSimulation",
+    value: function _basicSimulation() {
       var _this = this;
 
       var cellToDesactive = [];
@@ -9242,8 +9232,8 @@ function () {
     }
     /**
      * Play game
-     * @param {Object} options 
-     * @param {Function} callback 
+     * @param {Object} options
+     * @param {Function} callback
      */
 
   }, {
@@ -9262,7 +9252,7 @@ function () {
         }
 
         if (!_this2.paused) {
-          _this2._nextSimulation();
+          _this2._basicSimulation();
         }
 
         if (_this2.cptGen % _this2.renderGen === 0) {
@@ -9274,8 +9264,8 @@ function () {
     }
     /**
      * Resize matrix
-     * @param {Number} width 
-     * @param {Number} height 
+     * @param {Number} width
+     * @param {Number} height
      */
 
   }, {
@@ -9293,7 +9283,7 @@ function () {
 
 
         if (widthUpdate > 0) {
-          var newMatrix = _this3._createMatrix();
+          var newMatrix = new _matrix__WEBPACK_IMPORTED_MODULE_0__["default"](Math.round(height / _this3.size), Math.round(width / _this3.size)).matrix;
 
           for (var nI = 0; nI < newMatrix.length; nI++) {
             for (var mI = 0; mI < newMatrix[nI].length; mI++) {
@@ -9309,12 +9299,12 @@ function () {
           }
 
           _this3.matrix = newMatrix;
-        }
+        } // TODO, fix this shit
+
 
         if (widthUpdate < 0) {
           console.log(widthUpdate, Math.abs(Math.floor(widthUpdate / 2)), Math.abs(Math.round(widthUpdate / 2)));
-
-          var _newMatrix = _this3._createMatrix();
+          var _newMatrix = new _matrix__WEBPACK_IMPORTED_MODULE_0__["default"](Math.round(height / _this3.size), Math.round(width / _this3.size)).matrix;
 
           for (var _nI = 0; _nI < _this3.matrix.length; _nI++) {
             for (var _mI = Math.abs(Math.floor(widthUpdate / 2)); _mI < _this3.matrix[_nI].length - Math.abs(Math.round(widthUpdate / 2)); _mI++) {
@@ -9413,7 +9403,57 @@ function () {
     }
   }]);
 
-  return LifeGame;
+  return GameOfLife;
+}();
+
+
+
+/***/ }),
+
+/***/ "./src/matrix.js":
+/*!***********************!*\
+  !*** ./src/matrix.js ***!
+  \***********************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Matrix; });
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Matrix =
+/*#__PURE__*/
+function () {
+  function Matrix(height, width) {
+    _classCallCheck(this, Matrix);
+
+    this._matrix = this._createEmptyMatrix(height, width);
+  }
+
+  _createClass(Matrix, [{
+    key: "_createEmptyMatrix",
+    value: function _createEmptyMatrix(height, width) {
+      var matrix = Array(height);
+
+      for (var nI = 0; nI < matrix.length; nI++) {
+        matrix[nI] = Array(width);
+      }
+
+      return matrix;
+    }
+  }, {
+    key: "matrix",
+    get: function get() {
+      return this._matrix;
+    }
+  }]);
+
+  return Matrix;
 }();
 
 

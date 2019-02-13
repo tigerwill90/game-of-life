@@ -4,10 +4,11 @@
  * 2) Naissance : si une case vide est entouée par exactement 3 voisines, elle devient vivante au tour suivant
  */
 
-let game = null
 let canvas = null
+let g = null
+
 window.addEventListener('load', () => {
-    game = new LifeGame({
+    g = new GameOfLife({
         canvas: 'life-game',
         size: 5,
         color: '#7f0000',
@@ -15,21 +16,12 @@ window.addEventListener('load', () => {
         width: window.innerWidth / 1.2,
         height: window.innerHeight / 1.2,
         customize: canvas => {
-            canvas.style.top = `calc(50% - ${canvas.height/2}px)`
-            canvas.style.left = `calc(50% - ${canvas.width/2}px)`
-        },
-        init: matrix => {
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2) - 1] = 1
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2)] = 1
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2) + 1] = 1
-
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][30] = 1
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][31] = 1
-            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][32] = 1
-        } 
+            canvas.style.top = `calc(50% - ${canvas.height / 2}px)`
+            canvas.style.left = `calc(50% - ${canvas.width / 2}px)`
+        }
     })
-    
-    game.play({speed: 0, render: 1}, (err, cpt) => {
+
+    g.play({ speed: 0, render: 1 }, (err, cpt) => {
         if (err !== null) {
             throw err
             return
@@ -39,14 +31,14 @@ window.addEventListener('load', () => {
 })
 
 window.addEventListener('resize', () => {
-
-    game.resize(window.innerWidth / 1.2, window.innerHeight / 1.2).then(canvas => {
-        canvas.style.top = `calc(50% - ${canvas.height/2}px)`
-        canvas.style.left = `calc(50% - ${canvas.width/2}px)`
-    }).catch(err => {
-        throw err
-    })
-
+    g.resize(window.innerWidth / 1.2, window.innerHeight / 1.2)
+        .then(canvas => {
+            canvas.style.top = `calc(50% - ${canvas.height / 2}px)`
+            canvas.style.left = `calc(50% - ${canvas.width / 2}px)`
+        })
+        .catch(err => {
+            throw err
+        })
 })
 
 /*
@@ -64,5 +56,12 @@ window.addEventListener('resize', () => {
             for (let mI = 0; mI < matrix[0].length; mI++) {
                 matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][mI] = 1
             }
-*/
 
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2) - 1] = 1
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2)] = 1
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][Math.round(((window.innerWidth / 1.2) / 5) / 2) + 1] = 1
+
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][30] = 1
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][31] = 1
+            matrix[Math.round(((window.innerHeight / 1.2) / 5) / 2)][32] = 1
+*/

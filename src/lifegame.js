@@ -1,8 +1,8 @@
-export default class LifeGame {
+import Matrix from './matrix'
 
+export default class GameOfLife {
     /**
-     * 
-     * @param {Object} options 
+     * @param {Object} options
      */
     constructor(options) {
         this._validateOptions(options)
@@ -22,10 +22,13 @@ export default class LifeGame {
             if (options.customize !== undefined) {
                 options.customize(this.canvas)
             }
-            this.matrix = this._createMatrix()
-            if (options.init !== undefined) {
+            this.matrix = new Matrix(
+                Math.round(options.height / options.size),
+                Math.round(options.width / options.size)
+            ).matrix
+            if (options.pattern !== undefined) {
                 this._populate(this.matrix, () => 0)
-                options.init(this.matrix)
+                options.pattern(this.matrix)
             } else {
                 this._populate(this.matrix, () => Math.round(Math.random()))
             }
@@ -36,68 +39,49 @@ export default class LifeGame {
     }
 
     /**
-     * 
-     * @param {Object} options 
+     *
+     * @param {Object} options
      */
     _validateOptions(options) {
-        if (typeof options !== 'object')
-            throw new Error('constructor expect an object as argument')
+        if (typeof options !== 'object') throw new Error('constructor expect an object as argument')
 
-        if (options.canvas === undefined)
-            throw new Error('canvas id name element is expected')
+        if (options.canvas === undefined) throw new Error('canvas id name element is expected')
 
-        if (typeof options.canvas !== 'string')
-            throw new Error('canavas option must be a string')
+        if (typeof options.canvas !== 'string') throw new Error('canavas option must be a string')
 
-        if (options.width === undefined)
-            throw new Error('width option is expected')
+        if (options.width === undefined) throw new Error('width option is expected')
 
-        if (typeof options.width !== 'number')
-            throw new Error('width option must be a number')
+        if (typeof options.width !== 'number') throw new Error('width option must be a number')
 
-        if (options.height === undefined)
-            throw new Error('height option is expected')
+        if (options.height === undefined) throw new Error('height option is expected')
 
-        if (typeof options.height !== 'number')
-            throw new Error('height option must be a number')
+        if (typeof options.height !== 'number') throw new Error('height option must be a number')
 
-        if (options.size === 'undefined')
-            throw new Error('size option is expected')
-        
-        if (typeof options.size !== 'number')
-            throw new Error('size option must be a number')
+        if (options.size === 'undefined') throw new Error('size option is expected')
+
+        if (typeof options.size !== 'number') throw new Error('size option must be a number')
 
         if (options.color !== undefined && typeof options.color !== 'string')
             throw new Error('color option must be a string')
 
         if (options.background !== undefined && typeof options.background !== 'string')
             throw new Error('background option must be a string')
-        
+
         if (options.customize !== undefined && typeof options.customize !== 'function')
             throw new Error('customize option must be a function')
 
-        if (options.init !== undefined && typeof options.init !== 'function')
-            throw new Error('init option must be a function')
+        if (options.pattern !== undefined && typeof options.pattern !== 'function')
+            throw new Error('pattern option must be a function')
     }
 
     /**
-     * Create a newt matrix from a ratio between size and canvas dimension
-     */
-    _createMatrix() {
-        const matrix = new Array(Math.round(this.canvas.height / this.size))
-        for (let nI = 0; nI < matrix.length; nI++) {
-            matrix[nI] = new Array(Math.round(this.canvas.width / this.size))
-        }
-        return matrix
-    }
-
-    /**
-     * Init state for each indice with the an activation function
-     * @param {Function} fn 
+     * Populate state for each indice with the an activation function
+     * @param {Array} matrix
+     * @param {Function} fn
      */
     _populate(matrix, fn) {
         for (let nI = 0; nI < matrix.length; nI++) {
-            for(let mI = 0; mI < matrix[nI].length; mI++) {
+            for (let mI = 0; mI < matrix[nI].length; mI++) {
                 matrix[nI][mI] = fn(nI, mI)
             }
         }
@@ -107,27 +91,27 @@ export default class LifeGame {
      * Color canvas according matrix state
      */
     _draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         for (let nI = 0; nI < this.matrix.length; nI++) {
             for (let mI = 0; mI < this.matrix[nI].length; mI++) {
                 if (this.matrix[nI][mI] === 1) {
                     this.ctx.fillStyle = this.color
-                } else {
-                    this.ctx.fillStyle = this.background
+                    this.ctx.fillRect(mI * this.size, nI * this.size, this.size, this.size)
                 }
-                this.ctx.fillRect(mI * this.size, nI * this.size, this.size, this.size)
             }
         }
     }
 
+    _hashLifeSimulation() {}
+
     /**
      * Simulated a new generation of cell and update matrix
      */
-    _nextSimulation() {
+    _basicSimulation() {
         const cellToDesactive = []
         const cellToActive = []
         for (let nI = 0; nI < this.matrix.length; nI++) {
             for (let mI = 0; mI < this.matrix[nI].length; mI++) {
-
                 const countCellNeighbour = () => {
                     let cpt = 0
                     for (let i = -1; i <= 1; i++) {
@@ -147,10 +131,10 @@ export default class LifeGame {
 
                 let countActive = countCellNeighbour()
                 if (this.matrix[nI][mI] === 1 && (countActive < 2 || countActive > 3)) {
-                    cellToDesactive.push([nI,mI])
+                    cellToDesactive.push([nI, mI])
                 }
-                if (this.matrix[nI][mI] === 0 && countActive  === 3) {
-                    cellToActive.push([nI,mI])
+                if (this.matrix[nI][mI] === 0 && countActive === 3) {
+                    cellToActive.push([nI, mI])
                 }
             }
         }
@@ -164,15 +148,13 @@ export default class LifeGame {
 
     /**
      * Play game
-     * @param {Object} options 
-     * @param {Function} callback 
+     * @param {Object} options
+     * @param {Function} callback
      */
     play(options, callback) {
-        if (options.speed === undefined)
-            return callback(new Error('speed option is expected'))
+        if (options.speed === undefined) return callback(new Error('speed option is expected'))
 
-        if (typeof options.speed !== 'number')
-            return callback(new Error('speed option must be a number'))
+        if (typeof options.speed !== 'number') return callback(new Error('speed option must be a number'))
 
         if (options.render !== undefined && typeof options.render !== 'number')
             return callback(new Error('render option must be a number'))
@@ -180,15 +162,14 @@ export default class LifeGame {
         if (options.max !== undefined && typeof options.max !== 'number')
             return callback(new Error('max option must be a number'))
 
-        if (options.render !== undefined)
-            this.renderGen = options.render
+        if (options.render !== undefined) this.renderGen = options.render
 
         const interval = setInterval(() => {
             if (options.max !== undefined && options.max === this.cptGen) {
                 clearInterval(interval)
             }
             if (!this.paused) {
-                this._nextSimulation()
+                this._basicSimulation()
             }
             if (this.cptGen % this.renderGen === 0) {
                 this._draw()
@@ -197,54 +178,57 @@ export default class LifeGame {
         }, options.speed)
     }
 
-
     /**
      * Resize matrix
-     * @param {Number} width 
-     * @param {Number} height 
+     * @param {Number} width
+     * @param {Number} height
      */
     resize(width, height) {
         return new Promise((resolve, reject) => {
-            if (typeof width !== 'number') 
-                return reject(new Error('Number type expected for width argument'))
+            if (typeof width !== 'number') return reject(new Error('Number type expected for width argument'))
 
-            if (typeof height !== 'number')
-                return reject(new Error('Number type expected for heigth argument '))
-            
+            if (typeof height !== 'number') return reject(new Error('Number type expected for heigth argument '))
+
             this.canvas.width = width
             this.canvas.height = height
 
             const widthUpdate = Math.round(width / this.size) - this.matrix[0].length
             // Create a new matrix according to the new width and height
             if (widthUpdate > 0) {
-                const newMatrix = this._createMatrix()
+                const newMatrix = new Matrix(Math.round(height / this.size), Math.round(width / this.size)).matrix
+
                 for (let nI = 0; nI < newMatrix.length; nI++) {
                     for (let mI = 0; mI < newMatrix[nI].length; mI++) {
                         if (this.matrix[nI][mI] === 1) {
                             const mIu = mI + Math.floor(widthUpdate / 2)
                             newMatrix[nI][mIu] = this.matrix[nI][mI]
                         }
-    
+
                         if (newMatrix[nI][mI] !== 1) {
                             newMatrix[nI][mI] = 0
                         }
                     }
                 }
-    
-               this.matrix = newMatrix
+
+                this.matrix = newMatrix
             }
 
             // TODO, fix this shit
             if (widthUpdate < 0) {
-                console.log(widthUpdate, Math.abs(Math.floor(widthUpdate / 2)),  Math.abs(Math.round(widthUpdate / 2)))
-                const newMatrix = this._createMatrix()
+                console.log(widthUpdate, Math.abs(Math.floor(widthUpdate / 2)), Math.abs(Math.round(widthUpdate / 2)))
+                const newMatrix = new Matrix(Math.round(height / this.size), Math.round(width / this.size)).matrix
+
                 for (let nI = 0; nI < this.matrix.length; nI++) {
-                    for (let mI = Math.abs(Math.floor(widthUpdate / 2)); mI < this.matrix[nI].length - Math.abs(Math.round(widthUpdate / 2)); mI++) {
+                    for (
+                        let mI = Math.abs(Math.floor(widthUpdate / 2));
+                        mI < this.matrix[nI].length - Math.abs(Math.round(widthUpdate / 2));
+                        mI++
+                    ) {
                         if (this.matrix[nI][mI] === 1) {
-                            console.log(mI,mI - Math.abs(Math.floor(widthUpdate / 2)))
+                            console.log(mI, mI - Math.abs(Math.floor(widthUpdate / 2)))
                             newMatrix[nI][mI - Math.abs(Math.floor(widthUpdate / 2))] = this.matrix[nI][mI]
                         }
-    
+
                         if (newMatrix[nI][mI] !== 1) {
                             newMatrix[nI][mI] = 0
                         }
@@ -252,7 +236,7 @@ export default class LifeGame {
                 }
                 this.matrix = newMatrix
             }
-    
+
             /*
             const widthUpdate = Math.round(width / this.size) - this.matrix[0].length
             if (widthUpdate > 0) {

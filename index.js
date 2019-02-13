@@ -1,4 +1,4 @@
 import '@babel/polyfill'
-import LifeGame from './src/lifegame'
+import GameOfLife from './src/lifegame'
 
-export default LifeGame
+export default GameOfLife
